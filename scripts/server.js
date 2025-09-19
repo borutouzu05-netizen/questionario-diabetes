@@ -141,24 +141,6 @@ app.get('/get-response-count', async (req, res) => {
   }
 });
 
-// Limpar dados
-app.delete('/clear-data', async (req, res) => {
-  try {
-    if (req.query.confirm === 'true') {
-      const db = await openDb();
-      await db.run('DELETE FROM respostas');
-      // Resetar autoincrement no SQLite
-      await db.run("DELETE FROM sqlite_sequence WHERE name='respostas'");
-      res.json({ success: true, message: 'Dados limpos com sucesso' });
-    } else {
-      res.status(400).json({ success: false, error: 'Confirmação necessária' });
-    }
-  } catch (error) {
-    console.error('Erro ao limpar dados:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌐 Acesse: http://localhost:${PORT}`);

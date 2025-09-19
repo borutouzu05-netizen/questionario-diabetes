@@ -89,27 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
         linkElement.click();
     });
 
-    document.getElementById('clear-data').addEventListener('click', async function () {
-        if (confirm('Tem certeza que deseja limpar todos os dados? Esta ação não pode ser desfeita.')) {
-            try {
-                const response = await fetch('/clear-data?confirm=true', {
-                    method: 'DELETE'
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    updateResponseCount();
-                    alert('Dados limpos com sucesso!');
-                    document.getElementById('data-display').classList.add('hidden');
-                } else {
-                    throw new Error(result.error);
-                }
-            } catch (error) {
-                console.error('Erro ao limpar dados:', error);
-                alert('Erro ao limpar os dados. Tente novamente.');
-            }
-        }
-    });
+    
 
     const tabs = document.querySelectorAll('.tab');
     const nextButtons = document.querySelectorAll('.next-btn');
