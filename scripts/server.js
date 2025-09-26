@@ -1,6 +1,5 @@
 import express from 'express';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import mysql from 'mysql2/promise';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
@@ -18,43 +17,52 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Abrir conexão com o SQLite
-async function openDb() {
-  return open({
-    filename: path.join(__dirname, 'database.sqlite'),
-    driver: sqlite3.Database
-  });
-}
+// Configurar conexão MySQL - coloque as variáveis do seu banco aqui
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || '12345678',
+  database: process.env.DB_NAME || 'pesquisa_diabetes',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 // Criar tabela se não existir
 async function createTable() {
-  const db = await openDb();
-  await db.exec(`
+  const createTableSQL = `
     CREATE TABLE IF NOT EXISTS respostas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      idade INTEGER,
-      sexo TEXT,
-      possui_diabetes TEXT,
-      tipo_diabetes TEXT,
-      outro_tipo_diabetes TEXT,
-      utiliza_insulina TEXT,
-      metodo_aplicacao TEXT,
-      outro_metodo_aplicacao TEXT,
-      utiliza_sensor TEXT,
-      monitoramento_glicemia TEXT,
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      idade INT,
+      sexo VARCHAR(255),
+      possui_diabetes VARCHAR(255),
+      tipo_diabetes VARCHAR(255),
+      outro_tipo_diabetes VARCHAR(255),
+      utiliza_insulina VARCHAR(255),
+      metodo_aplicacao VARCHAR(255),
+      outro_metodo_aplicacao VARCHAR(255),
+      utiliza_sensor VARCHAR(255),
+      monitoramento_glicemia VARCHAR(255),
       automacao_beneficios TEXT,
       preocupacoes TEXT,
       beneficios_pacientes TEXT,
       sugestoes TEXT,
-      testar_prototipo TEXT,
+      testar_prototipo VARCHAR(255),
       justificativa_teste TEXT,
-      uso_diario TEXT,
+      uso_diario VARCHAR(255),
       justificativa_uso TEXT,
-      fator_confianca TEXT,
+      fator_confianca VARCHAR(255),
       justificativa_confianca TEXT,
       data_resposta DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `);
+  `;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.query(createTableSQL);
+  } finally {
+    conn.release();
+  }
 }
 
 await createTable();
@@ -69,15 +77,14 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Servidor funcionando',
-    database: 'SQLite'
+    database: 'MySQL'
   });
 });
 
 // Salvar resposta
 app.post('/save-response', async (req, res) => {
+  const conn = await pool.getConnection();
   try {
-    const db = await openDb();
-
     const {
       idade, sexo, possui_diabetes, tipo_diabetes, outro_tipo_diabetes,
       utiliza_insulina, metodo_aplicacao, outro_metodo_aplicacao, utiliza_sensor,
@@ -104,40 +111,46 @@ app.post('/save-response', async (req, res) => {
       fator_confianca, justificativa_confianca
     ];
 
-    const result = await db.run(query, values);
+    const [result] = await conn.execute(query, values);
 
     res.json({
       success: true,
       message: 'Resposta salva com sucesso',
-      insertId: result.lastID
+      insertId: result.insertId
     });
   } catch (error) {
     console.error('Erro ao salvar resposta:', error);
     res.status(500).json({ success: false, error: error.message });
+  } finally {
+    conn.release();
   }
 });
 
 // Obter todas as respostas
 app.get('/get-responses', async (req, res) => {
+  const conn = await pool.getConnection();
   try {
-    const db = await openDb();
-    const rows = await db.all('SELECT * FROM respostas ORDER BY data_resposta DESC');
+    const [rows] = await conn.query('SELECT * FROM respostas ORDER BY data_resposta DESC');
     res.json(rows);
   } catch (error) {
     console.error('Erro ao buscar respostas:', error);
     res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
   }
 });
 
 // Obter contagem de respostas
 app.get('/get-response-count', async (req, res) => {
+  const conn = await pool.getConnection();
   try {
-    const db = await openDb();
-    const row = await db.get('SELECT COUNT(*) as count FROM respostas');
-    res.json({ count: row.count });
+    const [rows] = await conn.query('SELECT COUNT(*) as count FROM respostas');
+    res.json({ count: rows[0].count });
   } catch (error) {
     console.error('Erro ao contar respostas:', error);
     res.status(500).json({ error: error.message });
+  } finally {
+    conn.release();
   }
 });
 
