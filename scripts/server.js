@@ -57,7 +57,7 @@ app.post('/save-response', async (req, res) => {
 
     // Insere dados na tabela "respostas"
     const { data, error } = await supabase
-      .from('respostas')
+      .from('formulario')
       .insert([{
         idade, sexo, possui_diabetes, tipo_diabetes, outro_tipo_diabetes,
         utiliza_insulina, metodo_aplicacao, outro_metodo_aplicacao, utiliza_sensor,
