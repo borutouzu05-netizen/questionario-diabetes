@@ -45,6 +45,8 @@ app.get('/health', (req, res) => {
 // Salvar resposta no Supabase
 app.post('/save-response', async (req, res) => {
   try {
+    console.log('Dados recebidos em /save-response:', req.body);
+
     const {
       idade, sexo, possui_diabetes, tipo_diabetes, outro_tipo_diabetes,
       utiliza_insulina, metodo_aplicacao, outro_metodo_aplicacao, utiliza_sensor,
@@ -53,6 +55,7 @@ app.post('/save-response', async (req, res) => {
       fator_confianca, justificativa_confianca
     } = req.body;
 
+    // Insere dados na tabela "respostas"
     const { data, error } = await supabase
       .from('respostas')
       .insert([{
@@ -63,7 +66,10 @@ app.post('/save-response', async (req, res) => {
         fator_confianca, justificativa_confianca
       }]);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao inserir dados no Supabase:', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
 
     res.json({
       success: true,
@@ -71,7 +77,7 @@ app.post('/save-response', async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Erro ao salvar resposta:', error);
+    console.error('Erro inesperado ao salvar resposta:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -84,11 +90,14 @@ app.get('/get-responses', async (req, res) => {
       .select('*')
       .order('data_resposta', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao buscar respostas:', error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json(data);
   } catch (error) {
-    console.error('Erro ao buscar respostas:', error);
+    console.error('Erro inesperado ao buscar respostas:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -100,11 +109,14 @@ app.get('/get-response-count', async (req, res) => {
       .from('respostas')
       .select('*', { count: 'exact', head: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao contar respostas:', error);
+      return res.status(500).json({ error: error.message });
+    }
 
     res.json({ count });
   } catch (error) {
-    console.error('Erro ao contar respostas:', error);
+    console.error('Erro inesperado ao contar respostas:', error);
     res.status(500).json({ error: error.message });
   }
 });
