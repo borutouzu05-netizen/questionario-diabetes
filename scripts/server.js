@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Carrega as variáveis do .env automaticamente
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -8,21 +9,26 @@ import { createClient } from '@supabase/supabase-js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// __dirname equivalente para ES modules
+// __dirname para ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const supabaseUrl = 'https://anbgdiquyvpyrjucvfdr.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY;  // corrigido aqui
-const supabase = createClient(supabaseUrl, supabaseKey);
+// URL e KEY do Supabase - obrigatórios
+const supabaseUrl = process.env.SUPABASE_URL || 'https://anbgdiquyvpyrjucvfdr.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY;
 
+if (!supabaseKey) {
+  throw new Error('A variável SUPABASE_KEY não está definida. Configure seu arquivo .env ou variáveis de ambiente.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Rota principal para servir o arquivo HTML
+// Rota principal para servir o HTML
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -36,7 +42,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Salvar resposta
+// Salvar resposta no Supabase
 app.post('/save-response', async (req, res) => {
   try {
     const {
@@ -70,7 +76,7 @@ app.post('/save-response', async (req, res) => {
   }
 });
 
-// Obter todas as respostas
+// Obter todas as respostas do Supabase
 app.get('/get-responses', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -87,7 +93,7 @@ app.get('/get-responses', async (req, res) => {
   }
 });
 
-// Obter contagem de respostas
+// Obter contagem total de respostas
 app.get('/get-response-count', async (req, res) => {
   try {
     const { count, error } = await supabase
@@ -103,6 +109,7 @@ app.get('/get-response-count', async (req, res) => {
   }
 });
 
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
   console.log(`🌐 Acesse: http://localhost:${PORT}`);
